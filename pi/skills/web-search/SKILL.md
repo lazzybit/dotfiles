@@ -8,30 +8,11 @@ description: "Search the web using DuckDuckGo. Use when you need up-to-date info
 ## Usage
 
 ```bash
-bash ~/.pi/agent/skills/web-search/scripts/search "query"
-bash ~/.pi/agent/skills/web-search/scripts/search "query" --page 2
-bash ~/.pi/agent/skills/web-search/scripts/search "query" --time w
-bash ~/.pi/agent/skills/web-search/scripts/search "query" --region zh-tw
+bash scripts/search.sh QUERY [--page N] [--time d|w|m|y] [--region xx-xx]
 ```
 
-## Parameters
+| `-p`, `--page` | page number | 1 |
+| `-t`, `--time` | time filter: d, w, m, y | (none) |
+| `-r`, `--region` | region code | us-en |
 
-| Parameter | Values | Default |
-|-----------|--------|---------|
-| `--page`, `-p` | 1, 2, 3, ... | 1 |
-| `--time`, `-t` | d, w, m, y | (none) |
-| `--region`, `-r` | us-en, zh-tw, uk-en, jp-jp, ... | us-en |
-
-## Output
-
-```
-1.
-    Title: Page title
-    URL:   https://...
-    Desc:  Snippet text
-
-2.
-    ...
-```
-
-Limited to ~10 text results per request. No image/news/video search.
+Limited to ~10 text results per request.

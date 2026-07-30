@@ -32,28 +32,32 @@ HTML=$(curl -s --http2 --max-time 10 \
 
 [[ -z "$HTML" ]] && { echo "Error: no response" >&2; exit 1; }
 
-clean() {
-    sed 's/<[^>]*>//g' \
-    | sed 's/&amp;/\&/g; s/&lt;/</g; s/&gt;/>/g; s/&quot;/"/g; s/&#x27;/'\''/g; s/&#39;/'\''/g' \
-    | tr -s ' ' | sed 's/^ *//;s/ *$//'
+echo "$HTML" | awk '
+function clean(str) {
+    gsub(/<[^>]*>/, "", str)
+    gsub(/&amp;/, "\\&", str)
+    gsub(/&lt;/, "<", str)
+    gsub(/&gt;/, ">", str)
+    gsub(/&quot;/, "\"", str)
+    gsub(/&#x27;|&#39;/, "\047", str)
+    gsub(/  +/, " ", str)
+    gsub(/^ +| +$/, "", str)
+    return str
 }
-
-TMP=$(mktemp -d "${TMPDIR:-/tmp}/web-search-XXXXXX")
-trap 'rm -rf "$TMP"' EXIT
-
-echo "$HTML" | grep -oP 'class="result__a"[^>]*href="\K[^"]*' > "$TMP/urls"
-echo "$HTML" | grep -oP '<a[^>]*class="result__a"[^>]*>\K.*?(?=</a>)' | clean > "$TMP/titles"
-echo "$HTML" | grep -oP '<a[^>]*class="result__snippet"[^>]*>\K.*?(?=</a>)' | clean > "$TMP/descs"
-
-paste "$TMP/urls" "$TMP/titles" "$TMP/descs" 2>/dev/null | awk -F'\t' '
-BEGIN { n = 0 }
-{
-    url = $1; title = $2; desc = $3
-    if (url ~ /^https:\/\/duckduckgo\.com\/y\.js\?/) next
-    if (title == "" || url == "") next
-    n++
-    printf "%d.\n    Title: %s\n    URL:   %s\n", n, title, url
-    if (desc != "") printf "    Desc:  %s\n", desc
-    printf "\n"
+/class="result__a"/ {
+    url = ""; title = ""
+    if (match($0, /href="([^"]*)"/, m))        url = m[1]
+    if (match($0, /<a[^>]*class="result__a"[^>]*>(.*)<\/a>/, m)) title = clean(m[1])
+}
+/class="result__snippet"/ {
+    desc = ""
+    if (match($0, /<a[^>]*class="result__snippet"[^>]*>(.*)<\/a>/, m)) desc = clean(m[1])
+    if (url && title && url !~ /duckduckgo\.com\/y\.js/) {
+        n++
+        printf "%d.\n    Title: %s\n    URL:   %s\n", n, title, url
+        if (desc != "") printf "    Desc:  %s\n", desc
+        printf "\n"
+    }
+    url = title = ""
 }
 END { if (n == 0) print "No results found." }'
