@@ -18,16 +18,17 @@ done
 QUERY="${QUERY# }"
 [[ -z "$QUERY" ]] && { echo "Usage: $(basename "$0") QUERY [--page N] [--time d|w|m|y] [--region xx-xx]" >&2; exit 1; }
 
-PAYLOAD="q=$QUERY&b=&l=$REGION"
-[[ -n "$TIMELIMIT" ]] && PAYLOAD+="&df=$TIMELIMIT"
-[[ "$PAGE" -gt 1 ]] && PAYLOAD+="&s=$(( 10 + (PAGE - 2) * 15 ))"
+EXTRA_PARAMS="b=&l=$REGION"
+[[ -n "$TIMELIMIT" ]] && EXTRA_PARAMS+="&df=$TIMELIMIT"
+[[ "$PAGE" -gt 1 ]] && EXTRA_PARAMS+="&s=$(( 10 + (PAGE - 2) * 15 ))"
 
 HTML=$(curl -s --http2 --max-time 10 \
     --ciphers "$CIPHERS" --curves "$CURVES" \
     -H "User-Agent: $UA" \
     -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8" \
     -H "Accept-Language: en-US,en;q=0.9" \
-    -d "$PAYLOAD" \
+    --data-urlencode "q=$QUERY" \
+    -d "$EXTRA_PARAMS" \
     'https://html.duckduckgo.com/html/' 2>/dev/null)
 
 [[ -z "$HTML" ]] && { echo "Error: no response" >&2; exit 1; }

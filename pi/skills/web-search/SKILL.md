@@ -8,7 +8,7 @@ description: "Search the web using DuckDuckGo. Use when you need up-to-date info
 ## Usage
 
 ```bash
-bash scripts/search.sh QUERY [--page N] [--time d|w|m|y] [--region xx-xx]
+./scripts/search.sh QUERY [--page N] [--time d|w|m|y] [--region xx-xx]
 ```
 
 | `-p`, `--page` | page number | 1 |
