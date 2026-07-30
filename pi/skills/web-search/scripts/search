@@ -1,0 +1,59 @@
+#!/bin/bash
+set -euo pipefail
+
+UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36'
+CIPHERS='ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305'
+CURVES='X25519:prime256v1:secp384r1'
+
+QUERY=""; PAGE=1; TIMELIMIT=""; REGION="us-en"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --page|-p) PAGE="$2"; shift 2 ;;
+        --time|-t) TIMELIMIT="$2"; shift 2 ;;
+        --region|-r) REGION="$2"; shift 2 ;;
+        *) QUERY="$QUERY $1"; shift ;;
+    esac
+done
+QUERY="${QUERY# }"
+[[ -z "$QUERY" ]] && { echo "Usage: $(basename "$0") QUERY [--page N] [--time d|w|m|y] [--region xx-xx]" >&2; exit 1; }
+
+PAYLOAD="q=$QUERY&b=&l=$REGION"
+[[ -n "$TIMELIMIT" ]] && PAYLOAD+="&df=$TIMELIMIT"
+[[ "$PAGE" -gt 1 ]] && PAYLOAD+="&s=$(( 10 + (PAGE - 2) * 15 ))"
+
+HTML=$(curl -s --http2 --max-time 10 \
+    --ciphers "$CIPHERS" --curves "$CURVES" \
+    -H "User-Agent: $UA" \
+    -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8" \
+    -H "Accept-Language: en-US,en;q=0.9" \
+    -d "$PAYLOAD" \
+    'https://html.duckduckgo.com/html/' 2>/dev/null)
+
+[[ -z "$HTML" ]] && { echo "Error: no response" >&2; exit 1; }
+
+clean() {
+    sed 's/<[^>]*>//g' \
+    | sed 's/&amp;/\&/g; s/&lt;/</g; s/&gt;/>/g; s/&quot;/"/g; s/&#x27;/'\''/g; s/&#39;/'\''/g' \
+    | tr -s ' ' | sed 's/^ *//;s/ *$//'
+}
+
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/web-search-XXXXXX")
+trap 'rm -rf "$TMP"' EXIT
+
+echo "$HTML" | grep -oP 'class="result__a"[^>]*href="\K[^"]*' > "$TMP/urls"
+echo "$HTML" | grep -oP '<a[^>]*class="result__a"[^>]*>\K.*?(?=</a>)' | clean > "$TMP/titles"
+echo "$HTML" | grep -oP '<a[^>]*class="result__snippet"[^>]*>\K.*?(?=</a>)' | clean > "$TMP/descs"
+
+paste "$TMP/urls" "$TMP/titles" "$TMP/descs" 2>/dev/null | awk -F'\t' '
+BEGIN { n = 0 }
+{
+    url = $1; title = $2; desc = $3
+    if (url ~ /^https:\/\/duckduckgo\.com\/y\.js\?/) next
+    if (title == "" || url == "") next
+    n++
+    printf "%d.\n    Title: %s\n    URL:   %s\n", n, title, url
+    if (desc != "") printf "    Desc:  %s\n", desc
+    printf "\n"
+}
+END { if (n == 0) print "No results found." }'
