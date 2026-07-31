@@ -21,7 +21,7 @@ If a clear pattern exists, follow it exactly.
 
 Otherwise, default to:
 
-- Imperative mood ("Add", "Fix", "Remove")
+- Imperative mood ("add", "fix", "remove")
 - Lowercase first letter, no trailing period
 - Single line, ideally under 72 characters
 - English only
@@ -36,7 +36,7 @@ Otherwise, default to:
 For complex changes, use a summary line + blank line + bullet points:
 
 ```
-refactor payment processing pipeline
+refactor payment processing pipeline:
 
 - extract validation into separate module
 - add retry logic for transient failures
