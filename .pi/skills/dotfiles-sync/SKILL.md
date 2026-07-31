@@ -28,7 +28,7 @@ Run `./scripts/check-history.sh <file> <repo-path>` to check whether a file matc
 - `HISTORICAL` — file matches a past commit (likely old version)
 - `NEW` — file content has never been committed
 
-If all changed files on one side are `HISTORICAL`, that side is likely older — a signal, not a rule. Do not assume a revert unless the user explicitly says so.
+If all changed files on one side are `HISTORICAL`, that side is likely older — a signal, not a rule. Check for revert commits with `git log --oneline -i --grep='revert'` before assuming a side is older.
 
 ## Decision
 
