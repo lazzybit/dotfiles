@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Setup script for web-fetch skill
 # Run once to install Node.js dependencies
 
