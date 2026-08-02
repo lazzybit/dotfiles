@@ -5,76 +5,53 @@ description: "Fetch web content efficiently. Use when reading URLs, documentatio
 
 # Web Fetch
 
-**Critical: NEVER dump raw HTML into context. Always probe first, then fetch.**
+**Always probe first, never dump raw HTML into context.**
 
-## Step 0: Probe Before Fetching
+All paths below are relative to this skill directory.
 
-Always start with a HEAD request to inspect headers. Do NOT run a full GET until you know what you're getting.
+## Step 0: Probe
 
 ```bash
-curl -sI -L -H "Accept: text/markdown" "<url>"
+./scripts/probe.sh "<url>"
+# → one word: fetch_markdown, try_site_api_or_extract, probe_failed, …
 ```
 
-Check these headers before proceeding:
-
-| Header | Decision |
+| suggestion | Action |
 |---|---|
-| `content-type` starts with `text/markdown` | → Tier 1: fetch with `curl -sL -H "Accept: text/markdown" "<url>"` |
-| `content-type` starts with `application/json` | → fetch and parse JSON directly |
-| `content-length` > 100 KB (100000 bytes) | → skip full fetch, jump to Tier 2 or 3 (site recipe / extract) |
-| `content-type` is `text/html` and `content-length` < 10 KB | → small page, safe to fetch and strip tags |
-| `content-type` is `text/html` and `content-length` > 10 KB | → skip full GET, jump to Tier 2 or Tier 3 |
-| Other / unknown content-type | → jump to Tier 2 |
+| `fetch_markdown` | `curl -sL -H "Accept: text/markdown" "<url>"` |
+| `fetch_json` | `curl -sL "<url>"`, parse JSON |
+| `fetch_small_html` | `curl -sL "<url>" \| sed 's/<[^>]*>//g' \| sed '/^$/d'` |
+| `fetch_direct` | `curl -sL "<url>"` |
+| `try_site_api_or_extract` | Check site-recipes → extract.js → strip fallback |
+| `try_site_api_only` | Check site-recipes only, skip full fetch |
+| `probe_failed` | HEAD rejected or network error → try site-recipes or small GET directly |
 
-**If the HEAD response has no `content-type` header, assume HTML and proceed cautiously (Tier 2 or Tier 3 only).**
+## Direct Markdown Fetch
 
-## Tier 1: `Accept: text/markdown` (only after probe confirms markdown)
-
-Cloudflare-enabled sites and some CDNs return clean markdown. Only use this after Step 0 confirms `text/markdown` content-type.
+Only when probe returns `fetch_markdown`:
 
 ```bash
 curl -sL -H "Accept: text/markdown" "<url>"
 ```
 
-Check `x-markdown-tokens` / `x-original-tokens` response headers to gauge cost.
+## Site-Specific APIs
 
-## Tier 2: Site-specific APIs
+For `try_site_api_or_extract` / `try_site_api_only`: check `./references/site-recipes.md` for clean endpoints (GitHub raw, Wikipedia API, Reddit `.json`, etc.).
 
-When Step 0 indicates HTML or large content, consult `references/site-recipes.md` for clean endpoints (GitHub raw, Wikipedia API, Reddit `.json`, etc.). This is the preferred path for supported sites.
+## Readability Extraction
 
-## Tier 3: Readability extraction (last resort for HTML)
-
-Run once: `cd ~/.pi/agent/skills/web-fetch && bash scripts/setup.sh`
+One-time setup: `./scripts/setup.sh`
 
 ```bash
-# ALWAYS check first if the page is worth parsing:
-node ~/.pi/agent/skills/web-fetch/scripts/extract.js "<url>" --check
-
-# Only if --check says readerable: true, then extract:
-node ~/.pi/agent/skills/web-fetch/scripts/extract.js "<url>"
-# → outputs JSON, use .textContent field
+# Check if page is worth parsing:
+./scripts/extract.js "<url>" --check
+# If readerable: true → extract:
+./scripts/extract.js "<url>"
+# → JSON, use .textContent field
 ```
 
-If `--check` returns `readerable: false`, fall back to a last resort:
+If not readerable, fall back to stripping tags:
 
 ```bash
-# Strip HTML tags, limit to first 500 lines / 20 KB:
 curl -sL "<url>" | sed 's/<[^>]*>//g' | sed '/^$/d' | head -n 500
 ```
-
-## Complete Decision Flow
-
-```
-0. curl -sI -L -H "Accept: text/markdown" <url>  ← ALWAYS START HERE
-   ↓
-   Check content-type + content-length headers
-   ↓
-1. text/markdown? → curl -sL -H "Accept: text/markdown" <url> → DONE
-2. application/json? → curl -sL <url> → parse JSON → DONE
-3. site-recipes.md has a match? → use clean API endpoint → DONE
-4. content-length < 10KB HTML? → curl -sL <url> | sed strip → DONE
-5. extract.js --check → readerable? → extract.js → DONE
-6. Last resort: curl -sL <url> | sed strip | head -n 500
-```
-
-**Never skip Step 0. Never run a full GET on unknown content.**
