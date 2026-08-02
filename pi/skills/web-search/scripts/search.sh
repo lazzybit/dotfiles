@@ -16,7 +16,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 QUERY="${QUERY# }"
-[[ -z "$QUERY" ]] && { echo "Usage: $(basename "$0") QUERY [--page N] [--time d|w|m|y] [--region xx-xx]" >&2; exit 1; }
+[[ -z "$QUERY" ]] && { echo "QUERY required" >&2; exit 1; }
 
 EXTRA_PARAMS="b=&l=$REGION"
 [[ -n "$TIMELIMIT" ]] && EXTRA_PARAMS+="&df=$TIMELIMIT"

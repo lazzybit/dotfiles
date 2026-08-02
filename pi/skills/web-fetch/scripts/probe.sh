@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# probe.sh - Probe a URL and return a clean content classification
-# Usage: probe.sh <url>
-# Output: one word — the suggestion
 set -e
 
 url="$1"

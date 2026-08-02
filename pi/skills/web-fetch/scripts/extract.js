@@ -1,8 +1,4 @@
 #!/usr/bin/env node
-// Extract readable content from a URL using Mozilla Readability + JSDOM.
-// Usage:
-//   node extract.js <url>           # full extraction
-//   node extract.js <url> --check   # only check if readerable
 
 const { Readability, isProbablyReaderable } = require('@mozilla/readability');
 const { JSDOM } = require('jsdom');
@@ -11,7 +7,7 @@ const url = process.argv[2];
 const checkOnly = process.argv.includes('--check');
 
 if (!url) {
-    console.error('Usage: node extract.js <url> [--check]');
+    console.error('URL required');
     process.exit(1);
 }
 

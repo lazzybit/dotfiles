@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Setup script for web-fetch skill
-# Run once to install Node.js dependencies
-
 set -e
 
 SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
