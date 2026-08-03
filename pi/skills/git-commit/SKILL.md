@@ -36,7 +36,7 @@ Otherwise, default to:
 For complex changes, use a summary line + blank line + bullet points:
 
 ```
-refactor payment processing pipeline:
+refactor payment processing pipeline
 
 - extract validation into separate module
 - add retry logic for transient failures
