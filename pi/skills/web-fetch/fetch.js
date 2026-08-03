@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-import { Readability, isProbablyReaderable } from "@mozilla/readability";
-import { JSDOM } from "jsdom";
 import { createHash } from "node:crypto";
 import { createWriteStream, writeFileSync, writeSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -103,7 +101,11 @@ async function handleText(res) {
   output(await res.text());
 }
 
+// jsdom+readability are heavy to compile; load lazily so text/json/binary
+// fetches never pay for them.
 async function handleHtml(html) {
+  const { Readability, isProbablyReaderable } = await import("@mozilla/readability");
+  const { JSDOM } = await import("jsdom");
   const doc = new JSDOM(html, { url }).window.document;
   if (isProbablyReaderable(doc, { minContentLength: 140, minScore: 20 })) {
     const article = new Readability(doc).parse();
